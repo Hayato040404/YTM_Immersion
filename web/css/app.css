@@ -1,0 +1,725 @@
+/* ============================================================
+   YTM Immersion Web — スマホ特化 UI
+   拡張機能の PIP (document Picture-in-Picture) と同じ構成を
+   全画面に引き伸ばしたもの。歌詞の CSS は src/css/style.css と
+   pip-manager.js の同名ブロックと同じ値を入れてある。
+   ============================================================ */
+
+:root {
+  --bg: #000;
+  --text-dim: rgba(255, 255, 255, 0.5);
+  --line: rgba(255, 255, 255, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #000;
+  color: #fff;
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+body {
+  /* 100vh は iOS Safari のアドレスバーで切れるので dvh */
+  min-height: 100dvh;
+}
+
+button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── ホーム画面 ─────────────────────────────────────────── */
+#home-screen {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: max(24px, env(safe-area-inset-top)) 20px calc(30px + env(safe-area-inset-bottom));
+}
+
+.app-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 8px 0 18px;
+}
+
+.app-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: -14px 0 20px;
+  line-height: 1.6;
+}
+
+/* タブ */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.tabs button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tabs button.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+/* 検索 */
+.search-box {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+#search-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  padding: 13px 14px;
+  outline: none;
+  min-width: 0;
+}
+
+#search-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+#search-input:focus { border-color: rgba(255, 255, 255, 0.3); }
+
+#search-btn {
+  border: none;
+  background: #fff;
+  color: #000;
+  font-weight: 800;
+  font-size: 15px;
+  border-radius: 12px;
+  padding: 0 18px;
+  cursor: pointer;
+}
+
+.file-label {
+  display: block;
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+#file-input { display: none; }
+
+#search-progress {
+  display: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 6px 2px;
+}
+
+/* リスト */
+.track-list { display: flex; flex-direction: column; gap: 4px; }
+
+.track-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.track-row:active { background: rgba(255, 255, 255, 0.08); }
+
+.track-art {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.track-info { flex: 1; min-width: 0; }
+
+.track-title {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-artist {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.track-kind {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.list-empty {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 14px;
+  text-align: center;
+  padding: 30px 0;
+}
+
+/* ── プレイヤー画面 (PIP と同じ構成) ────────────────────── */
+#player-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+  background: #000;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+#player-bg-layer {
+  position: absolute;
+  inset: -20%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(80px) saturate(1.4) brightness(0.55);
+  z-index: -3;
+  transition: background-image 1.2s ease;
+}
+
+#player-noise-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  opacity: 0.04;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* ヘッダー: PIP の .pip-header と同じ並び */
+.pip-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: calc(14px + env(safe-area-inset-top)) 20px 10px;
+  z-index: 10;
+}
+
+.artwork-box {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.artwork-box img { width: 100%; height: 100%; object-fit: cover; }
+.artwork-box img[hidden] { display: none; }
+
+.info-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+#player-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 1px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+#player-artist {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.top-right-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+.top-right-btn svg { width: 18px; height: 18px; }
+.top-right-btn.liked { color: #ff375f; }
+
+/* 閉じるボタン(ヘッダー左) */
+#player-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#player-close svg { width: 18px; height: 18px; fill: currentColor; }
+
+/* 歌詞エリア: PIP の #pip-lyrics-container と同じ */
+#lyrics-container {
+  flex: 1;
+  overflow-y: auto;
+  text-align: left;
+  padding: 30px 22px 40vh 22px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 46px, #000 96px, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 46px, #000 96px, #000 82%, transparent 100%);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  z-index: 5;
+}
+
+#lyrics-container::-webkit-scrollbar { display: none; }
+
+/* シーク + 操作 (PIP の .controls-box と同じ並び) */
+.seek-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 24px 4px;
+  z-index: 10;
+}
+
+.seek-row input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #fff var(--fill, 0%), rgba(255, 255, 255, 0.22) var(--fill, 0%));
+  outline: none;
+}
+
+.seek-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.seek-time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 34px;
+}
+.seek-time:last-child { text-align: right; }
+
+.controls-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  padding: 14px 0 calc(24px + env(safe-area-inset-bottom));
+  z-index: 10;
+}
+
+.control-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.control-btn:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.3); }
+.control-btn svg { fill: currentColor; pointer-events: none; }
+
+.main-btn { width: 56px; height: 56px; }
+.main-btn svg { width: 30px; height: 30px; }
+.sub-btn { width: 44px; height: 44px; }
+.sub-btn svg { width: 21px; height: 21px; }
+
+/* 再生中の隠しホスト */
+#yt-host, #audio-host { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+#yt-host iframe { width: 200px; height: 120px; }
+
+/* 再生中バー (ホームに戻ったとき) */
+#now-playing-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  width: min(92vw, 480px);
+  display: none;
+  align-items: center;
+  gap: 12px;
+  background: rgba(28, 28, 30, 0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 14px;
+  color: #fff;
+  cursor: pointer;
+  z-index: 40;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+#now-playing-bar img {
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+#now-playing-bar img[hidden] { display: none; }
+
+#now-bar-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+#now-playing-bar svg {
+  width: 22px;
+  height: 22px;
+  fill: #fff;
+  flex-shrink: 0;
+}
+
+/* タップでプレイヤーへ戻る。バー自体が button の中身なので
+   テキスト方向の既定スタイルを落とす */
+#now-playing-bar { border: 1px solid var(--line); text-decoration: none; }
+#now-playing-bar:active { background: rgba(44, 44, 46, 0.95); }
+
+/* Document PiP 小窓 (拡張の PIP と同じ構成) */
+.pip-mode, .pip-mode body {
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: inherit;
+  -webkit-font-smoothing: antialiased;
+}
+
+.pip-mode #pip-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.pip-mode #pip-bg-layer {
+  position: absolute;
+  inset: -20%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(80px) saturate(1.4) brightness(0.8);
+  z-index: -3;
+}
+
+.pip-mode #pip-noise-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  opacity: 0.04;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.pip-mode .pip-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px 20px 10px;
+  z-index: 10;
+}
+
+.pip-mode #pip-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 1px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pip-mode #pip-artist {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pip-mode #pip-lyrics-container {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  text-align: left;
+  padding: 110px 22px 150px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 60px, #000 110px, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 60px, #000 110px, #000 72%, transparent 100%);
+  scrollbar-width: none;
+  z-index: 5;
+  overscroll-behavior: contain;
+}
+.pip-mode #pip-lyrics-container::-webkit-scrollbar { display: none; }
+
+.pip-mode .lyric-line {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.015em !important;
+  margin-bottom: 16px !important;
+  line-height: 1.35 !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+  filter: blur(1.5px) !important;
+  transform: scale(0.85) !important;
+  transform-origin: left center !important;
+  transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+              color 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+              filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  width: 100% !important;
+  text-shadow: none !important;
+}
+
+.pip-mode .lyric-line.active {
+  color: #fff !important;
+  transform: scale(1) !important;
+  filter: blur(0px) !important;
+}
+
+.pip-mode .lyric-line.lyric-past {
+  opacity: 0 !important;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.5s, color 0.5s, filter 0.5s,
+              opacity 1.2s ease 0.3s, visibility 0s linear 1.5s !important;
+}
+
+.pip-mode .controls-box {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px 0 34px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.15) 0%, transparent 100%);
+}
+
+/* ============================================================
+   歌詞 — 拡張 style.css / pip-manager.js と同じ値
+   ============================================================ */
+.lyric-line {
+  position: relative;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  margin-bottom: 18px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.25);
+  filter: blur(1.5px);
+  transform: scale(0.85);
+  transform-origin: left center;
+  transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+              color 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+              filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  text-shadow: none;
+  text-wrap: balance;
+  word-break: keep-all;
+  word-break: auto-phrase;
+  overflow-wrap: break-word;
+  line-break: strict;
+  white-space: pre-line;
+  will-change: transform, opacity;
+}
+
+.lyric-line.no-timestamp {
+  color: #fff;
+  transform: scale(1);
+  opacity: 1;
+  cursor: default;
+  filter: blur(0);
+}
+
+.lyric-line.active {
+  color: #fff;
+  transform: scale(1);
+  filter: blur(0);
+  z-index: 6;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.lyric-line.empty-line { display: none; }
+
+.lyric-main {
+  display: block;
+  width: 100%;
+  line-height: 1.35;
+}
+
+/* 再生済みの行は位置を保ったまま消す */
+.lyric-line.lyric-past {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.5s, color 0.5s, filter 0.5s,
+              opacity 1.2s ease 0.3s, visibility 0s linear 1.5s;
+}
+
+.lyric-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.25);
+  z-index: 1;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 30px;
+}
+
+/* ── Apple Music 風の同期表示 ─────────────────────────────
+   JS が渡すもの:
+     行に  --sweep   行の先頭から塗りが進んだ px
+           --feather 塗りの境目のぼかし半幅 px
+     語に  --wx      その語が行の先頭から何 px 目に始まるか
+           --wg      光の強さ 0〜1 (伸ばした音だけ)
+           --wglowa  光の最大の濃さ   --wglowr  光の半径(em)
+   持ち上がりと膨らみ(transform)は Web Animations が合成側で動かす。
+   拡張 src/css/style.css の同名ブロックと同じ。 */
+@property --sweep {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.lyric-line.ytm-word-sync {
+  --sweep: 0;
+  --feather: 10;
+  --ytm-rest-alpha: 0.26;
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+              color 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lyric-line.ytm-word-sync.active {
+  --ytm-rest-alpha: 0.4;
+  transform: scale(1.06);
+  /* 語ごとの光と重なると行がのっぺり白く飛ぶ */
+  text-shadow: none;
+}
+
+.lyric-phrase.lyric-phrase-sync { margin: 0; }
+
+.lyric-line.ytm-word-sync .lyric-word {
+  --wx: 0;
+  --feather: 10;
+  --wg: 0;
+  --wglowa: 0;
+  --wglowr: 0;
+  display: inline-block;
+  white-space: pre;
+  /* transform は Web Animations が合成側で動かす。ここでは書かない。 */
+  transform-origin: 50% 78%;
+  transition: none;
+}
+
+/* 塗り。行を流れる先端(--sweep)から自分の開始位置(--wx)を引いた所に
+   境目が来る。px 指定なので語をまたいでもぼかし幅が変わらない。 */
+.lyric-line.ytm-word-sync.active .lyric-word {
+  /* background-size / background-position は使わないこと。
+     画像からはみ出した語がまるごと透明になって消える。 */
+  background-image: linear-gradient(90deg,
+      currentColor calc((var(--sweep) - var(--wx) - var(--feather)) * 1px),
+      color-mix(in srgb, currentColor calc(var(--ytm-rest-alpha) * 100%), transparent)
+        calc((var(--sweep) - var(--wx) + var(--feather)) * 1px));
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 calc(var(--wglowr) * 1em)
+    color-mix(in srgb,
+      color-mix(in srgb, currentColor 55%, #fff)
+      calc(var(--wg) * var(--wglowa) * 100%), transparent);
+}
+
+/* 前後の行では素のテキストに戻す */
+.lyric-line.ytm-word-sync:not(.active) .lyric-word {
+  background-image: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+
+/* ── 横画面・タブレット ────────────────────────────────── */
+@media (min-width: 700px) {
+  #home-screen { max-width: 640px; }
+  .lyric-line { font-size: 30px; }
+}

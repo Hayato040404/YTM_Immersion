@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Immersion">
+  <meta name="description" content="MP3 や YouTube の曲を Apple Music 風の歌詞同期で聴ける Web プレイヤー">
+  <title>Immersion Player</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <!-- ホーム: 検索 / お気に入り / 履歴 -->
+  <div id="home-screen">
+    <h1 class="app-title">Immersion</h1>
+    <p class="app-sub">
+      YouTube リンクか曲名を入れて検索、MP3 を読み込んでも OK。<br>
+      歌詞は SimpMusic から取得して、Apple Music 風に流れます。
+    </p>
+
+    <div class="tabs">
+      <button id="tab-search" class="active" type="button">検索</button>
+      <button id="tab-favorites" type="button">お気に入り</button>
+      <button id="tab-recent" type="button">履歴</button>
+    </div>
+
+    <div id="panel-search">
+      <div class="search-box">
+        <input id="search-input" type="search" placeholder="YouTube リンク または 曲名" autocomplete="off">
+        <button id="search-btn" type="button">検索</button>
+      </div>
+      <label class="file-label" for="file-input">MP3 / 音声ファイルを選択</label>
+      <input id="file-input" type="file" accept="audio/*" multiple>
+      <div id="search-progress"></div>
+    </div>
+
+    <div id="panel-favorites" class="track-list" style="display:none"></div>
+    <div id="panel-recent" class="track-list" style="display:none"></div>
+
+    <div id="results" class="track-list" style="margin-top:6px"></div>
+  </div>
+
+  <!-- 再生中バー (ホームに戻ったとき) -->
+  <button id="now-playing-bar" type="button" style="display:none">
+    <img id="now-bar-art" src="" alt="" hidden>
+    <span id="now-bar-title"></span>
+    <svg id="now-bar-play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    <svg id="now-bar-pause-icon" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+  </button>
+
+  <!-- プレイヤー: PIP と同じ構成 -->
+  <div id="player-screen">
+    <div id="player-bg-layer"></div>
+    <div id="player-noise-layer"></div>
+
+    <div class="pip-header">
+      <button id="player-close" type="button" aria-label="閉じる">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </button>
+      <div class="artwork-box"><img id="player-artwork" src="" alt=""></div>
+      <div class="info-box">
+        <div id="player-title"></div>
+        <div id="player-artist"></div>
+      </div>
+      <button id="player-like-btn" class="control-btn top-right-btn" type="button" aria-label="お気に入り">
+        <svg viewBox="0 0 24 24"><path id="player-like-icon-path" d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24z"/></svg>
+      </button>
+    </div>
+
+    <div id="lyrics-container"></div>
+
+    <div class="seek-row">
+      <span class="seek-time" id="time-current">0:00</span>
+      <input id="seek-bar" type="range" min="0" max="1" step="0.001" value="0">
+      <span class="seek-time" id="time-duration">0:00</span>
+    </div>
+
+    <div class="controls-box">
+      <button id="player-prev" class="control-btn sub-btn" type="button" aria-label="前の曲">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button id="player-play" class="control-btn main-btn" type="button" aria-label="再生/一時停止">
+        <svg id="player-play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="player-pause-icon" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <button id="player-next" class="control-btn sub-btn" type="button" aria-label="次の曲">
+        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+      </button>
+    </div>
+
+    <div id="yt-host"></div>
+    <div id="audio-host"></div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
